@@ -1,19 +1,20 @@
 import streamlit as st
-
+import pandas as pd
+from src.datos import cargar_datos
 st.set_page_config(
     page_title= "Global Defense Monitor",
     page_icon= "🌎",
     layout= "wide"
 )
 
+df = cargar_datos()
+
 st.title("🌎 Global Defense Monitor")
 st.subheader("La Guerra en números: 75 años de Gasto Militar")
-
 st.markdown("""
     **Este dashboard explora la evoluciÓn en el Gasto Militar a nivel global, regional y por países.** Se analizan datos históricos de partidas presupuestarias destinadas a defensa recolectadas por el **SIPRI** (1949 - 2024) complementada con datos del **Banco Mundial** para entender las dinámicas de rearme, hegemonía y los conflictos geopolíticos que moldearon el mundo moderno.
 """)
 st.divider()
-
 with st.expander("Contexto Histórico: De la Guerra Fría a la actualidad"):
     st.markdown(
     """
@@ -27,14 +28,12 @@ with st.expander("Contexto Histórico: De la Guerra Fría a la actualidad"):
     La disolución de la URSS el 26 de diciembre de 1991, tras una serie de complejas reestructuraciones políticas y económicas, marcó el fin formal de este periodo. No obstante, la herencia de esta "paz armada" y la lógica de disuasión estratégica continúan influyendo, hasta el día de hoy, en las planificaciones militares de las naciones soberanas.
     """
 )
-
 st.info("**Selecciona una página del menu lateral**")
-
 st.markdown("""
     <style>
         /* Reduce el padding superior del contenedor principal */
         .block-container {
-            padding-top: 3rem;
+            padding-top: 4rem;
             padding-bottom: 0rem;
             margin-top: 0rem;
         }
