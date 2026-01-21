@@ -1,5 +1,3 @@
-from operator import index
-from tkinter import Variable
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -18,19 +16,21 @@ st.sidebar.markdown("""
     Calcula la probabilidad de ocurrencia de eventos basándose en el registro histórico de datos.
 </p>""", unsafe_allow_html= True)
 
+options_selectbox = ['Spending_B', 'Growth_Rate', 'Share_of_GDP', 'Per_Capita', 'Share_of_Govt_Spending']
+
 def activar_analisis():
     st.session_state.analisis_listo = True
 
 def generar_tabla_frecuencias(df, variable, year=None):
     if variable in variables_temporales:
         if year is not None:
-            df_filtrado = df[df['Year'] == year].copy()
+            df_frec = df[df['Year'] == year].copy()
         else:
             return pd.DataFrame(), 0, 0, 0, 0, 0
     else:
-        df_filtrado = df.copy()
+        df_frec = df.copy()
 
-    datos_validos = df_filtrado[variable].replace([np.inf, -np.inf], np.nan).dropna()
+    datos_validos = df_frec[variable].replace([np.inf, -np.inf], np.nan).dropna()
     total_original = len(datos_validos)  #TAMAÑO DE LA MUESTRA
     
     if variable == 'Growth_Rate':
@@ -60,19 +60,33 @@ def generar_tabla_frecuencias(df, variable, year=None):
 
 variables_temporales = ['Spending_B', 'Per_Capita']
 
+def filtrado_outliers_iqr(df, variable, corte):  #LO RELACIONADO A LA ECONOMIA, POR LO GENERAL, SIGUE UNA DISTRIBUCION DE PARETO
+    limite = df[variable].quantile(corte)
+    return df[df[variable] <= limite]
+
+def filtro_df_operacion(df, variable, operador, valor):
+    if operador == '>':
+        return df[variable] > valor
+    elif operador == '<':
+        return df[variable] < valor
+    else:
+        return pd.Series(([False]*len(df)))
+
+
 if __name__ == '__main__':
     df = cargar_datos()
     col_1, col_2= st.columns(2) #col_1 -> COLUMNA DE VARIABLES | col_2 -> COLUMNA DE AÑOS (OPCIONAL)
     tab_tabla, tab_prob = st.tabs(['Tabla de Frecuencias', 'Calculadora de Probabilidades'])
+    
 
     with col_1:
         var_selected = st.selectbox(
             'Variable',
-            options= ['Spending_B', 'Growth_Rate', 'Share_of_GDP', 'Per_Capita', 'Share_of_Govt_Spending'],
-            index= None,
+            options= options_selectbox,
+            index= 0,
             placeholder= 'Seleccione una variable...'
         )
-    
+
     with col_2:
         year_selected = st.selectbox(
             'Año',
@@ -81,19 +95,15 @@ if __name__ == '__main__':
             placeholder= 'Seleccione un año...',
             disabled= (var_selected not in variables_temporales)
         )
+
+    df_sin_outliers = filtrado_outliers_iqr(df, var_selected, 0.95) #CONSULTAR SOBRE METODO DE CORTE
+
     with tab_tabla:
         if 'analisis_listo' not in st.session_state:
             st.session_state.analisis_listo = False
-        
-        boton = st.button(
-            "Generar Tabla de Frecuencias",
-            on_click= activar_analisis,
-            disabled= (var_selected is None),
-            type= 'primary'
-        )
 
-        if st.session_state.analisis_listo and var_selected:
-            tabla_frec, n, recorrido, intervalos, amplitud, dif = generar_tabla_frecuencias(df, var_selected, year_selected)
+        if st.session_state.analisis_listo:
+            tabla_frec, n, recorrido, intervalos, amplitud, dif = generar_tabla_frecuencias(df_sin_outliers, var_selected, year_selected)
             st.dataframe(tabla_frec)
             if dif != 0:
                 st.warning(f"⚠️ Se descartaron {dif} muestras (Outliers) ya que rompen la distribución de intervalos")
@@ -114,7 +124,7 @@ if __name__ == '__main__':
             with col_operador:
                 operador = st.selectbox(
                     'Op A',
-                    options= ['<', '<=', '>', '>=', '=='],
+                    options= ['<', '>'],
                     label_visibility= 'collapsed',
                     key= 'op_a'
                 )
@@ -129,9 +139,112 @@ if __name__ == '__main__':
                     type= 'primary',
                     key= 'igual_simple'
                 )
+
             with col_resultado:
                 if igual_button:
-                    st.markdown("#### $RESULTADO$")
+                    mascara_bool = filtro_df_operacion(df_sin_outliers, var_selected, operador, val_a)
+                    tamaño_muestra = len(df_sin_outliers)
+                    casos = mascara_bool.sum()
+
+                    if tamaño_muestra > 0:
+                        prob = (casos / tamaño_muestra) * 100
+                        st.markdown(f"#### ${(prob):.2f}$")
+                        st.caption(f"Casos: {casos} / Total Muestra: {tamaño_muestra}")
+                    else:
+                        st.error("El filtrado de outliers eliminó todos los datos.")
+
+        if tipo_evento == 'Evento Compuesto':
+            col_varB, col_yearB= st.columns(2) #col_1 -> COLUMNA DE VARIABLES | col_2 -> COLUMNA DE AÑOS (OPCIONAL)
+            titulo_P = st.empty()
+
+            with col_varB:
+                options_B = [op for op in options_selectbox if op != var_selected]
+                var_selectedB = st.selectbox(
+                    'Variable B',
+                    options= options_B,
+                    index= 0,
+                    placeholder= 'Seleccione una variable...'
+                )
+            with col_yearB:
+                year_selectedB = st.selectbox(
+                    'Año B',
+                    options= sorted(df_sin_outliers['Year'].unique(), reverse= True),
+                    index= None,
+                    placeholder= 'Seleccione un año...',
+                    disabled= (var_selectedB not in variables_temporales)
+                )
+            
+            cols = st.columns([2.4, 1, 1, 0.8, 2.4, 1, 1, 0.5, 1.5], gap= 'small', vertical_alignment= 'center')
+
+            with cols[0]:   #VARIABLE A
+                st.markdown(f"##### **{var_selected}**")
+            with cols[1]:   #OPERADOR A
+                operadorA = st.selectbox(
+                    'Op A',
+                    options= ['<', '>'],
+                    label_visibility= 'collapsed',
+                    key= 'op_a'
+                )
+            with cols[2]:   #OPERANDO A
+                if pd.api.types.is_numeric_dtype(df_sin_outliers[var_selected]):
+                    val_a = st.number_input('Val A', value= 0.0, label_visibility= 'collapsed', key= 'val_a')
+                else:
+                    val_a = st.selectbox('Val A', df_sin_outliers[var_selected].unique(), label_visibility= 'collapsed', key= 'val_a')
+            with cols[3]: #OPERACION DE CONJUNTO
+                op_Conjunto = st.selectbox(
+                    'Op Conj',
+                    options= ['∪', '∩', '∣'],
+                    label_visibility= 'collapsed',
+                    key= 'op_C'
+                )
+            with cols[4]:   #VARIABLE B
+                st.markdown(f"##### **{var_selectedB}**")
+            with cols[5]:   #OPERADOR B
+                operadorB = st.selectbox(
+                    'Op B',
+                    options= ['<', '>'],
+                    label_visibility= 'collapsed',
+                    key= 'op_b'
+                )
+            with cols[6]:   #OPERANDO B
+                if pd.api.types.is_numeric_dtype(df_sin_outliers[var_selectedB]):
+                    val_b = st.number_input('Val B', value= 0.0, label_visibility= 'collapsed', key= 'val_b')
+                else:
+                    val_b = st.selectbox('Val B', df[var_selected].unique(), label_visibility= 'collapsed', key= 'val_b')
+            with cols[7]:   #IGUAL
+                igual_button_C = st.button(
+                    '=',
+                    type= 'primary',
+                    key= 'igual_compuesto'
+                )
+            with cols[8]:   #RESULTADO
+                if igual_button_C:
+                    df_base = df_sin_outliers.copy()
+                    df_comun = df_base.dropna(subset=[var_selected, var_selectedB])
+                    tamaño_muestra = len(df_comun)
+
+                    if tamaño_muestra == 0:
+                        st.error("No hay registros que tengan datos para ambas variables simultáneamente.")
+                    else:
+                        mascara_A = filtro_df_operacion(df_comun, var_selected, operadorA, val_a)
+                        mascara_B = filtro_df_operacion(df_comun, var_selectedB, operadorB, val_b)
+
+                        if '∪' in op_Conjunto:
+                            mascara_final = mascara_A | mascara_B
+                        elif '∩' in op_Conjunto:
+                            mascara_final = mascara_A & mascara_B
+                    
+                        casos = mascara_final.sum()
+                        prob = (casos / tamaño_muestra) * 100
+
+                        st.markdown(f"#### ${(prob):.2f}$")
+                        st.caption(f"Muestra común: {tamaño_muestra} países (donde existen ambos registros).")
+
+
+            titulo_P.markdown(f"#### $P(A{op_Conjunto}B):$", text_alignment= 'center')
+
+
+
 st.markdown("""
     <style>
         /* Reduce el padding superior del contenedor principal */
