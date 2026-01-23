@@ -1,0 +1,457 @@
+from os import name
+from click import option
+from matplotlib.dates import _dt64_to_ordinalf
+import streamlit as st
+import plotly.express as px
+import pandas as pd
+from src.clase_analizador import Analizador_Estadistico
+from src.datos import cargar_datos
+from src.iso_countries import generar_diccionario_iso3
+import json
+
+st.set_page_config(page_title="Analisis de Variables Cualitativas", page_icon="📊", layout= 'wide')
+
+st.sidebar.header("Análisis de Variables Cualitativas")
+st.sidebar.markdown("""
+    <style>
+.small-font {
+    font-size:18px !important;
+    color: #888888;
+}
+</style>
+<p class="small-font">
+    Explora que países son parte de la muestra y la definición de las eras que componen este periodo de 75 años.
+</p>""", unsafe_allow_html= True)
+
+COLORES_REGIONES = {
+    'Europe': '#636EFA',
+    'Asia & Oceania': '#EF553B',
+    'Americas': '#AB63FA',
+    'Middle East': '#00CC96',
+    'Africa': '#FFA15A',
+    "(?)": "#f0f2f6",  
+    "Mundo": "#f0f2f6"
+}
+
+iso_codes = {
+    # --- AFRICA ---
+    "Algeria": "DZA",
+    "Libya": "LBY",
+    "Morocco": "MAR",
+    "Tunisia": "TUN",
+    "Angola": "AGO",
+    "Benin": "BEN",
+    "Botswana": "BWA",
+    "Burkina Faso": "BFA",
+    "Burundi": "BDI",
+    "Cameroon": "CMR",
+    "Cape Verde": "CPV",
+    "Central African Republic": "CAF",
+    "Chad": "TCD",
+    "Congo, DR": "COD",       # Democratic Republic of the Congo
+    "Congo, Republic": "COG", # Republic of the Congo
+    "Cote d'Ivoire": "CIV",
+    "Djibouti": "DJI",
+    "Equatorial Guinea": "GNQ",
+    "Eritrea": "ERI",
+    "Ethiopia": "ETH",
+    "Gabon": "GAB",
+    "Gambia, The": "GMB",
+    "Ghana": "GHA",
+    "Guinea": "GIN",
+    "Guinea-Bissau": "GNB",
+    "Kenya": "KEN",
+    "Lesotho": "LSO",
+    "Liberia": "LBR",
+    "Madagascar": "MDG",
+    "Malawi": "MWI",
+    "Mali": "MLI",
+    "Mauritania": "MRT",
+    "Mauritius": "MUS",
+    "Mozambique": "MOZ",
+    "Namibia": "NAM",
+    "Niger": "NER",
+    "Nigeria": "NGA",
+    "Rwanda": "RWA",
+    "Senegal": "SEN",
+    "Seychelles": "SYC",
+    "Sierra Leone": "SLE",
+    "Somalia": "SOM",
+    "South Africa": "ZAF",
+    "South Sudan": "SSD",
+    "Sudan": "SDN",
+    "Eswatini": "SWZ",
+    "Tanzania": "TZA",
+    "Togo": "TGO",
+    "Uganda": "UGA",
+    "Zambia": "ZMB",
+    "Zimbabwe": "ZWE",
+
+    # --- AMERICAS ---
+    "Belize": "BLZ",
+    "Costa Rica": "CRI",
+    "Cuba": "CUB",
+    "Dominican Republic": "DOM",
+    "El Salvador": "SLV",
+    "Guatemala": "GTM",
+    "Haiti": "HTI",
+    "Honduras": "HND",
+    "Jamaica": "JAM",
+    "Mexico": "MEX",
+    "Nicaragua": "NIC",
+    "Panama": "PAN",
+    "Trinidad and Tobago": "TTO",
+    "Canada": "CAN",
+    "United States of America": "USA",
+    "Argentina": "ARG",
+    "Bolivia": "BOL",
+    "Brazil": "BRA",
+    "Chile": "CHL",
+    "Colombia": "COL",
+    "Ecuador": "ECU",
+    "Guyana": "GUY",
+    "Paraguay": "PRY",
+    "Peru": "PER",
+    "Uruguay": "URY",
+    "Venezuela": "VEN",
+
+    # --- ASIA & OCEANIA ---
+    "Australia": "AUS",
+    "Fiji": "FJI",
+    "New Zealand": "NZL",
+    "Papua New Guinea": "PNG",
+    "Afghanistan": "AFG",
+    "Bangladesh": "BGD",
+    "India": "IND",
+    "Nepal": "NPL",
+    "Pakistan": "PAK",
+    "Sri Lanka": "LKA",
+    "China": "CHN",
+    "Japan": "JPN",
+    "Korea, North": "PRK",
+    "Korea, South": "KOR",
+    "Mongolia": "MNG",
+    "Taiwan": "TWN",
+    "Brunei": "BRN",
+    "Cambodia": "KHM",
+    "Indonesia": "IDN",
+    "Laos": "LAO",
+    "Malaysia": "MYS",
+    "Myanmar": "MMR",
+    "Philippines": "PHL",
+    "Singapore": "SGP",
+    "Thailand": "THA",
+    "Timor Leste": "TLS",
+    "Viet Nam": "VNM",
+    "Kazakhstan": "KAZ",
+    "Kyrgyz Republic": "KGZ",
+    "Tajikistan": "TJK",
+    "Turkmenistan": "TKM",
+    "Uzbekistan": "UZB",
+
+    # --- EUROPE ---
+    "Albania": "ALB",
+    "Bosnia and Herzegovina": "BIH",
+    "Bulgaria": "BGR",
+    "Croatia": "HRV",
+    "Czechia": "CZE",
+    "Estonia": "EST",
+    "Hungary": "HUN",
+    "Kosovo": "XKX", # Codigo temporal usado comunmente para Kosovo
+    "Latvia": "LVA",
+    "Lithuania": "LTU",
+    "North Macedonia": "MKD",
+    "Montenegro": "MNE",
+    "Poland": "POL",
+    "Romania": "ROU",
+    "Serbia": "SRB",
+    "Slovakia": "SVK",
+    "Slovenia": "SVN",
+    "Armenia": "ARM",
+    "Azerbaijan": "AZE",
+    "Belarus": "BLR",
+    "Georgia": "GEO",
+    "Moldova": "MDA",
+    "Russia": "RUS",
+    "Ukraine": "UKR",
+    "Austria": "AUT",
+    "Belgium": "BEL",
+    "Cyprus": "CYP",
+    "Denmark": "DNK",
+    "Finland": "FIN",
+    "France": "FRA",
+    "Germany": "DEU",
+    "Greece": "GRC",
+    "Iceland": "ISL",
+    "Ireland": "IRL",
+    "Italy": "ITA",
+    "Luxembourg": "LUX",
+    "Malta": "MLT",
+    "Netherlands": "NLD",
+    "Norway": "NOR",
+    "Portugal": "PRT",
+    "Spain": "ESP",
+    "Sweden": "SWE",
+    "Switzerland": "CHE",
+    "United Kingdom": "GBR",
+
+    # --- MIDDLE EAST ---
+    "Bahrain": "BHR",
+    "Egypt": "EGY",
+    "Iran": "IRN",
+    "Iraq": "IRQ",
+    "Israel": "ISR",
+    "Jordan": "JOR",
+    "Kuwait": "KWT",
+    "Lebanon": "LBN",
+    "Oman": "OMN",
+    "Qatar": "QAT",
+    "Saudi Arabia": "SAU",
+    "Syria": "SYR",
+    "Türkiye": "TUR",
+    "Turkey": "TUR",
+    "United Arab Emirates": "ARE",
+    "Yemen": "YEM" 
+}
+
+# Correcciones para que los nombres de SIPRI coincidan con tu GeoJSON de 1960
+correcciones_1960 = {
+    # --- ÁFRICA ---
+    "Cote d'Ivoire": "Ivory Coast",
+    "Congo, DR": "Zaire",           # El GeoJSON usa el nombre de 1971-1997
+    "Congo, Republic": "Congo",
+    "Eswatini": "Swaziland",
+    "Tanzania": "Tanzania",         # Nota: En 1960 era Tanganica, pero tu GeoJSON dice Tanzania
+    "Burkina Faso": "Burkina Faso", # Tu GeoJSON usa el nombre moderno
+    "Equatorial Guinea": "Equatorial Guinea", 
+    "Gambia, The": "Gambia, The",
+
+    # --- AMÉRICA ---
+    "United States of America": "United States of America", # Coinciden, pero por seguridad
+    "Trinidad and Tobago": "Trinidad", # El GeoJSON solo dice Trinidad
+
+    # --- ASIA ---
+    "Myanmar": "Burma",
+    "Viet Nam": "Vietnam",
+    "Sri Lanka": "Sri Lanka",       # GeoJSON usa el moderno (no Ceylan)
+    "Türkiye": "Turkey",
+    "Yemen, North": "Yemen",        # Asumimos mapeo al Yemen del GeoJSON
+    "Kyrgyz Republic": "USSR",      # Por si se filtran datos modernos
+    "Kazakhstan": "USSR",
+    "Turkmenistan": "USSR",
+    "Uzbekistan": "USSR",
+    "Tajikistan": "USSR",
+    
+    # --- EUROPA (Bloque del Este) ---
+    "Russia": "USSR",               # Vital: SIPRI puede tener ambos, unificamos a USSR
+    "Ukraine": "USSR",
+    "Belarus": "USSR",
+    "Moldova": "USSR",
+    "Georgia": "USSR",
+    "Armenia": "USSR",
+    "Azerbaijan": "USSR",
+    "Estonia": "USSR",
+    "Latvia": "USSR",
+    "Lithuania": "USSR",
+    "Czechia": "Czechoslovakia",
+    "Slovakia": "Czechoslovakia",
+    "Serbia": "Yugoslavia",
+    "Croatia": "Yugoslavia",
+    "Slovenia": "Yugoslavia",
+    "Bosnia and Herzegovina": "Yugoslavia",
+    "North Macedonia": "Yugoslavia",
+    "Montenegro": "Yugoslavia",
+    "Kosovo": "Yugoslavia",
+
+    
+    # --- OTROS ---
+    "German Democratic Republic": "German Democratic Republic", # Coinciden
+    "Germany": "Germany",           # Se refiere a Alemania Occidental en el GeoJSON
+}
+
+def activar_analisis():
+    st.session_state.analisis_listo = True
+
+if __name__ == '__main__':
+    df = cargar_datos()
+
+    with open('./data/world_1960.geojson', 'r', encoding= 'utf-8') as f:
+        geojson_1960 = json.load(f)
+
+    tab_regiones, tab_eras = st.tabs(['Análisis Geoespacial', 'Análisis Temporal'])
+
+    with tab_regiones:   #MAPA DEL MUNDO (ACTUAL Y 1960) Y GRAFICO DE BARRAS PARA CANTIDAD DE PAISES POR REGION (ANUAL)
+        tab_mapa, tab_barra = st.tabs(['Mapa de la muestra', 'Países de la muestra por Región'])
+
+        with tab_mapa:
+            cols = st.columns([3,1])
+
+            with cols[0]:
+                selected_year = st.slider(
+                    'Seleccione un año',
+                    min_value= 1992,
+                    max_value= 2024,
+                    value= 2024,
+                    step= 1,
+                    help= 'Mapa mundial post Guerra Fría.',
+                    key='year_slider_map'
+                )
+
+            with cols[1]:
+                st.write('')
+                st.write('')
+                mapa_historico = st.toggle(
+                    '🗺️ Usar fronteras 1960',
+                    help= "Activa el mapa político de la Guerra Fría."
+                )
+            
+            if mapa_historico:
+                df_1960 = df[df['Year'] == 1960].copy()
+                df_paises = df_1960.copy()
+                df_paises['NAME_1960'] = df_paises['Country'].map(correcciones_1960).fillna(df_paises['Country'])
+                
+                # Extraer todos los nombres de países del GeoJSON
+                todos_paises_geojson = [feature['properties']['NAME'] for feature in geojson_1960['features']]
+                
+                # Crear un dataframe con todos los países del GeoJSON
+                df_todos = pd.DataFrame({'NAME_1960': todos_paises_geojson})
+                
+                # Agregar información de los países con datos (solo NAME_1960 y Region)
+                df_con_datos = df_paises[['NAME_1960', 'Region']].drop_duplicates(subset=['NAME_1960'], keep='first')
+                df_todos = df_todos.merge(df_con_datos, on='NAME_1960', how='left')
+                
+                # Asignar categoría: con datos o sin datos
+                df_todos['Tipo'] = df_todos['Region'].apply(
+                    lambda x: x if pd.notna(x) else 'Sin datos de gasto'
+                )
+                
+                # Crear mapa con colores diferenciados
+                color_map = COLORES_REGIONES.copy()
+                color_map['Sin datos de gasto'] = '#d9d9d9'  # Gris muy claro
+                
+                st.warning("⚠️ PARCIALMENTE FUNCIONAL: El tipo **Sin datos de gasto** no funciona correctamente.")
+
+                fig_mapa= px.choropleth(
+                    df_todos,
+                    geojson= geojson_1960,
+                    locations= 'NAME_1960',
+                    featureidkey= 'properties.NAME',
+                    color= 'Tipo',
+                    color_discrete_map= color_map,
+                    hover_name= 'NAME_1960',
+                    hover_data= {'NAME_1960': False, 'Region': True, 'Tipo': False},
+                    projection= 'natural earth',
+                    title= 'Mapa Histórico - Fronteras de la Guerra Fría (1960)',
+                    category_orders={'Tipo': list(COLORES_REGIONES.keys()) + ['Sin datos de gasto']}
+                )
+
+                fig_mapa.update_geos(
+                    showcountries= True,
+                    countrycolor= 'lightgray',
+                    countrywidth= 0.5,
+                    fitbounds= 'locations',
+                    visible= False,
+                    showland= True,
+                    landcolor= 'white',
+                    showocean= True,
+                    oceancolor= 'lightblue'
+                )
+
+                st.plotly_chart(fig_mapa, use_container_width= True)
+
+            else:
+                df_paises = df[df['Year'] == selected_year].copy()
+                df_paises['ISO-3'] = df_paises['Country'].map(iso_codes)
+                df_paises = df_paises.dropna(subset=['Spending_B'])
+                n_paises = df_paises['Country'].nunique()
+                st.info(f"En el año **{selected_year}**, el dataset cuenta con datos de **{n_paises}** países.")
+                
+                fig_mapa = px.choropleth(
+                    df_paises,
+                    locations= 'ISO-3',
+                    color= 'Region',
+                    color_discrete_map= COLORES_REGIONES,
+                    hover_name= 'Country',
+                    projection= 'natural earth',
+                    title= 'Cobertura Geográfica',
+                    color_discrete_sequence= px.colors.qualitative.Bold
+                )
+
+                fig_mapa.update_geos(
+                    showcountries= True,
+                    countrycolor= 'lightgray',
+                    showland= True,
+                    landcolor= 'white',
+                    showocean= True,
+                    oceancolor= 'lightblue'
+                )
+
+                st.plotly_chart(fig_mapa, use_container_width= True)
+
+        with tab_barra:
+            min_year = int(df['Year'].min())
+            max_year = int(df['Year'].max())
+
+            selected_year = st.slider(
+                'Seleccione un año',
+                min_value= min_year,
+                max_value= max_year,
+                value= 2024,
+                step= 1,
+                help= 'Desliza para ver la disponibilidad de datos por año.',
+                key='year_slider_barra'
+            )
+
+            # Filtrar datos por año seleccionado
+            df_year = df[df['Year'] == selected_year].copy()
+            # Eliminar países sin datos en Spending_B
+            df_year = df_year.dropna(subset=['Spending_B'])
+            n_paises = df_year['Country'].nunique()
+            st.info(f"En el año **{selected_year}**, el dataset cuenta con datos de **{n_paises}** países.")
+
+            # Contar países por región
+            conteo_region = df_year['Region'].value_counts().reset_index()
+            conteo_region.columns = ['Region', 'Count']
+            
+            # Reordenar para mantener consistencia
+            conteo_region = conteo_region.sort_values('Region')
+
+            fig_bar = px.bar(
+                conteo_region,
+                x= 'Region',
+                y= 'Count',
+                orientation= 'v',
+                text= 'Count',
+                color = 'Region',
+                color_discrete_map= COLORES_REGIONES,
+                title= f'Cantidad de países por Región ({selected_year})',
+                color_discrete_sequence= px.colors.qualitative.Bold
+            )
+
+            fig_bar.update_layout(showlegend= False)
+            fig_bar.update_traces(textposition='auto')
+            st.plotly_chart(fig_bar, use_container_width= True)
+
+    # with tabs[1]:    #LINEA DE TIEMPO
+
+
+
+
+#REDUCCION DEL HEADER Y EL FOOTER
+st.markdown("""
+    <style>
+        /* Reduce el padding superior del contenedor principal */
+        .block-container {
+            padding-top: 4rem;
+            padding-bottom: 0rem;
+            margin-top: 0rem;
+        }
+        
+        /* Opcional: Ocultar el menú de hamburguesa y el footer de 'Made with Streamlit' 
+           (Recomendado solo para el producto final) */
+        
+        /* #MainMenu {visibility: hidden;} */
+        /* footer {visibility: hidden;} */
+        
+    </style>
+""", unsafe_allow_html=True)
