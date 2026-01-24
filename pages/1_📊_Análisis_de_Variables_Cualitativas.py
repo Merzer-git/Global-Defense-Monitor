@@ -1,13 +1,9 @@
-from os import name
-from click import option
-from matplotlib.dates import _dt64_to_ordinalf
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from src.clase_analizador import Analizador_Estadistico
-from src.datos import cargar_datos
-from src.iso_countries import generar_diccionario_iso3
 import json
+from streamlit_timeline import timeline
+from src.datos import cargar_datos
 
 st.set_page_config(page_title="Analisis de Variables Cualitativas", page_icon="📊", layout= 'wide')
 
@@ -30,7 +26,10 @@ COLORES_REGIONES = {
     'Middle East': '#00CC96',
     'Africa': '#FFA15A',
     "(?)": "#f0f2f6",  
-    "Mundo": "#f0f2f6"
+    "Mundo": "#f0f2f6",
+    'Sin datos de gasto': '#C0BABC'
+
+
 }
 
 iso_codes = {
@@ -310,54 +309,59 @@ if __name__ == '__main__':
                 df_paises = df_1960.copy()
                 df_paises['NAME_1960'] = df_paises['Country'].map(correcciones_1960).fillna(df_paises['Country'])
                 
+                # Identificar países CON datos de gasto (Spending_B no es NaN)
+                df_paises['Tiene_Datos'] = df_paises['Spending_B'].notna()
+                
                 # Extraer todos los nombres de países del GeoJSON
                 todos_paises_geojson = [feature['properties']['NAME'] for feature in geojson_1960['features']]
                 
-                # Crear un dataframe con todos los países del GeoJSON
+                # Crear dataframe base con TODOS los países del GeoJSON
                 df_todos = pd.DataFrame({'NAME_1960': todos_paises_geojson})
                 
-                # Agregar información de los países con datos (solo NAME_1960 y Region)
-                df_con_datos = df_paises[['NAME_1960', 'Region']].drop_duplicates(subset=['NAME_1960'], keep='first')
-                df_todos = df_todos.merge(df_con_datos, on='NAME_1960', how='left')
+                # Agregar información de los países
+                df_con_info = df_paises[['NAME_1960', 'Region', 'Tiene_Datos']].drop_duplicates(subset=['NAME_1960'], keep='first')
+                df_todos = df_todos.merge(df_con_info, on='NAME_1960', how='left')
                 
-                # Asignar categoría: con datos o sin datos
-                df_todos['Tipo'] = df_todos['Region'].apply(
-                    lambda x: x if pd.notna(x) else 'Sin datos de gasto'
+                # Asignar región incluso a países sin datos de gasto (si tienen Region asignada)
+                # Si un país está en df pero tiene Spending_B = NaN, aún puede tener Region
+                df_todos['Tipo'] = df_todos.apply(
+                    lambda row: row['Region'] if pd.notna(row['Region']) and row['Tiene_Datos'] == True
+                    else 'Sin datos de gasto',
+                    axis=1
                 )
                 
-                # Crear mapa con colores diferenciados
-                color_map = COLORES_REGIONES.copy()
-                color_map['Sin datos de gasto'] = '#d9d9d9'  # Gris muy claro
+                # Crear mapa de colores con transparencia para países sin datos
+                color_map = {}
+                for region, color in COLORES_REGIONES.items():
+                    color_map[region] = color
                 
-                st.warning("⚠️ PARCIALMENTE FUNCIONAL: El tipo **Sin datos de gasto** no funciona correctamente.")
-
-                fig_mapa= px.choropleth(
+                fig_mapa = px.choropleth(
                     df_todos,
-                    geojson= geojson_1960,
-                    locations= 'NAME_1960',
-                    featureidkey= 'properties.NAME',
-                    color= 'Tipo',
-                    color_discrete_map= color_map,
-                    hover_name= 'NAME_1960',
-                    hover_data= {'NAME_1960': False, 'Region': True, 'Tipo': False},
-                    projection= 'natural earth',
-                    title= 'Mapa Histórico - Fronteras de la Guerra Fría (1960)',
+                    geojson=geojson_1960,
+                    locations='NAME_1960',
+                    featureidkey='properties.NAME',
+                    color='Tipo',
+                    color_discrete_map=color_map,
+                    hover_name='NAME_1960',
+                    hover_data={'NAME_1960': False, 'Region': True, 'Tipo': False},
+                    projection='natural earth',
+                    title='Mapa Histórico - Fronteras de la Guerra Fría (1960)',
                     category_orders={'Tipo': list(COLORES_REGIONES.keys()) + ['Sin datos de gasto']}
                 )
 
                 fig_mapa.update_geos(
-                    showcountries= True,
-                    countrycolor= 'lightgray',
-                    countrywidth= 0.5,
-                    fitbounds= 'locations',
-                    visible= False,
-                    showland= True,
-                    landcolor= 'white',
-                    showocean= True,
-                    oceancolor= 'lightblue'
+                    showcountries=True,
+                    countrycolor='lightgray',
+                    countrywidth=0.5,
+                    fitbounds='locations',
+                    visible=False,
+                    showland=True,
+                    landcolor='white',
+                    showocean=True,
+                    oceancolor='lightblue'
                 )
 
-                st.plotly_chart(fig_mapa, use_container_width= True)
+                st.plotly_chart(fig_mapa, use_container_width=True)
 
             else:
                 df_paises = df[df['Year'] == selected_year].copy()
@@ -373,7 +377,7 @@ if __name__ == '__main__':
                     color_discrete_map= COLORES_REGIONES,
                     hover_name= 'Country',
                     projection= 'natural earth',
-                    title= 'Cobertura Geográfica',
+                    title= f'Cobertura Geográfica {selected_year}',
                     color_discrete_sequence= px.colors.qualitative.Bold
                 )
 
@@ -432,9 +436,33 @@ if __name__ == '__main__':
             fig_bar.update_traces(textposition='auto')
             st.plotly_chart(fig_bar, use_container_width= True)
 
-    # with tabs[1]:    #LINEA DE TIEMPO
+    with tab_eras:    #LINEA DE TIEMPO
+        data = {
+    "title": {
+        "media": {
+          "url": "static/cold_war_flag.svg",
+          "caption": "Contexto Global"
+        },
+        "text": {
+          "headline": "Evolución del Gasto Militar",
+          "text": "<p>Hitos clave que definieron los presupuestos de defensa.</p>"
+        }
+    },
+    "events": [
+      {
+        "start_date": {"year": "1949"},
+        "end_date": {"year": "1991"},
+        "text": {"headline": "Inicio Guerra Fría", "text": "Creación de la OTAN y polarización global."}
+      },
+      {
+        "start_date": {"year": "1991"},
+        "text": {"headline": "Caída de la URSS", "text": "Fin de la bipolaridad y reducción del gasto."}
+      },
+      # ... más eventos
+    ]
+}
 
-
+        timeline(data, height=500)
 
 
 #REDUCCION DEL HEADER Y EL FOOTER

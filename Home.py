@@ -57,7 +57,7 @@ with st.expander("📜 Contexto Histórico: De la Guerra Fría a la actualidad")
     Durante décadas, el mundo estuvo al borde de un conflicto global sin precedentes, donde un error diplomático, un fallo de cálculo en una prueba nuclear o una escalada militar accidental podrían haber sido detonantes catastróficos. En este contexto, se registraron aumentos sustanciales en los presupuestos de defensa, los cuales, en determinadas potencias, fueron destinados a financiar la investigación y desarrollo de armas de destrucción masiva.
 
     **El Nuevo Orden Mundial**:
-    La disolución de la URSS el 26 de diciembre de 1991, tras una serie de complejas reestructuraciones políticas y económicas, marcó el fin formal de este periodo. No obstante, la herencia de esta "paz armada" y la lógica de disuasión estratégica continúan influyendo, hasta el día de hoy, en las planificaciones militares de las naciones soberanas.
+    La disolución de la URSS el 26 de diciembre de 1991, tras una serie de complejas reestructuraciones políticas y económicas, marcó el fin formal de este periodo. No obstante, tras un breve de distensión, el escenario global entró en alerta nuevamente, esta vez frente a la amenaza terrorismo internacional. Este conmoción global evidenció la necesidad de rearme para hacerle frente a futuros conflictos emergentes. En consecuencia, el concepto de "paz armada" y la lógica de disuasión estratégica han resurgido, influyendo decisivamente en las planificaciones militares actuales de las naciones soberanas.
     """
 )
 st.info("**Selecciona una página del menú lateral.**")
