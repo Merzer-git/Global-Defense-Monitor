@@ -166,7 +166,7 @@ if __name__ == '__main__':
         with st.expander("💥 Agrega eventos al gráfico", expanded= False):
             eventos_seleccionados= st.multiselect(
                 'Selecciona eventos',
-                options= list(eventos_importantes.keys()),
+                options= (list(eventos_importantes.keys()))[:8],
                 default= ['Guerra de Corea (1950)', 'Muro de Berlín (1961)', 'Crisis de los Misiles (1962)', 'Golfo de Tonkín / Escalada Vietnam (1964)']
             )
 

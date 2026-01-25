@@ -27,6 +27,14 @@ COLORES_REGIONES = {
     "Mundo": "#f0f2f6"
 }
 
+PALETA_ERAS= {
+    '1. Guerra Fría (1949-1991)': '#3F88C5',
+    '2. Posguerra Fría (1992-2000)': '#20C997',
+    '3. Guerra contra el Terror (2001-2013)': '#E89005',
+    '4. Resurgimiento de Tensiones (2014-2022)': '#6610F2',
+    '5. Inestabilidad Global (2022-Presente)': '#A31621'
+}
+
 def activar_analisis():
     st.session_state.analisis_listo = True
 
@@ -106,6 +114,7 @@ if __name__ == '__main__':
             y= 'Spending_B',
             labels= {'Spending_B': 'Gasto (Billones USD)', 'Historical_Era': 'Periodo Histórico'},
             color= 'Historical_Era',
+            color_discrete_map= PALETA_ERAS,
             text_auto= '.2s',
             title= 'Gasto Promedio según el Contexto Histórico'
         )

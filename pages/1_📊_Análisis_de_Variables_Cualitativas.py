@@ -4,6 +4,9 @@ import pandas as pd
 import json
 from streamlit_timeline import timeline
 from src.datos import cargar_datos
+import base64
+import os
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Analisis de Variables Cualitativas", page_icon="📊", layout= 'wide')
 
@@ -28,8 +31,6 @@ COLORES_REGIONES = {
     "(?)": "#f0f2f6",  
     "Mundo": "#f0f2f6",
     'Sin datos de gasto': '#C0BABC'
-
-
 }
 
 iso_codes = {
@@ -268,6 +269,14 @@ correcciones_1960 = {
     "Germany": "Germany",           # Se refiere a Alemania Occidental en el GeoJSON
 }
 
+def cargar_imagen_local(ruta_archivo):
+    with open(ruta_archivo, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+    # Detectar extensión para el header correcto
+    ext = os.path.splitext(ruta_archivo)[1].lower()
+    tipo = "svg+xml" if ext == ".svg" else "png" if ext == ".png" else "jpeg"
+    return f"data:image/{tipo};base64,{encoded_string}"
+
 def activar_analisis():
     st.session_state.analisis_listo = True
 
@@ -437,32 +446,102 @@ if __name__ == '__main__':
             st.plotly_chart(fig_bar, use_container_width= True)
 
     with tab_eras:    #LINEA DE TIEMPO
-        data = {
-    "title": {
-        "media": {
-          "url": "static/cold_war_flag.svg",
-          "caption": "Contexto Global"
-        },
-        "text": {
-          "headline": "Evolución del Gasto Militar",
-          "text": "<p>Hitos clave que definieron los presupuestos de defensa.</p>"
-        }
-    },
-    "events": [
-      {
-        "start_date": {"year": "1949"},
-        "end_date": {"year": "1991"},
-        "text": {"headline": "Inicio Guerra Fría", "text": "Creación de la OTAN y polarización global."}
-      },
-      {
-        "start_date": {"year": "1991"},
-        "text": {"headline": "Caída de la URSS", "text": "Fin de la bipolaridad y reducción del gasto."}
-      },
-      # ... más eventos
-    ]
-}
+        data_hitos = [
+    {"Año": 1949, "Evento": "Inicio Guerra Fría", "Detalle": "Creación de la OTAN / Bomba soviética", "Nivel": 1},
+    {"Año": 1962, "Evento": "Crisis Misiles", "Detalle": "Punto máximo de tensión nuclear", "Nivel": 2},
+    {"Año": 1991, "Evento": "Caída URSS", "Detalle": "Fin de la Guerra Fría", "Nivel": 1},
+    {"Año": 2001, "Evento": "11-S", "Detalle": "Inicio Guerra contra el Terror", "Nivel": 2},
+    {"Año": 2014, "Evento": "Crimea", "Detalle": "Retorno a conflictos estatales", "Nivel": 1},
+    {"Año": 2022, "Evento": "Ucrania", "Detalle": "Invasión a gran escala", "Nivel": 2},
+]
 
-        timeline(data, height=500)
+        # Definimos las franjas de fondo (Las Eras)
+        eras = [
+            (1947, 1991, "Guerra Fría", "#3F88C5"),
+            (1991, 2001, "Posguerra Fría", "#20C997"),
+            (2001, 2014, "Guerra contra el Terror", "#E89005"),
+            (2014, 2022, "Resurg. de Tensiones", "#6610F2"),
+            (2022, 2028, "Inestabilidad Global", "#A31621"),
+        ]
+
+        # 2. CONSTRUCCIÓN DEL GRÁFICO
+        fig_timeline = go.Figure()
+
+        # A. Añadimos las franjas de colores (Eras)
+        for inicio, fin, nombre, color in eras:
+            fig_timeline.add_vrect(
+                x0=inicio, x1=fin,
+                fillcolor=color, opacity=0.15,
+                layer="below", line_width=0,
+                annotation_text=nombre, annotation_position="top left"
+            )
+
+        # B. Añadimos los "Lollipops" (Líneas verticales y puntos)
+        # Extraemos listas para plotly
+        anios = [d["Año"] for d in data_hitos]
+        niveles = [d["Nivel"] for d in data_hitos] # Altura para que no se solapen
+        textos = [d["Evento"] for d in data_hitos]
+        detalles = [d["Detalle"] for d in data_hitos]
+
+        # Líneas verticales (tallo del lollipop)
+        for i in range(len(anios)):
+            fig_timeline.add_shape(
+                type="line",
+                x0=anios[i], y0=0, x1=anios[i], y1=niveles[i],
+                line=dict(color="gray", width=1, dash="dot")
+            )
+
+        # Puntos (caramelo del lollipop)
+        fig_timeline.add_trace(go.Scatter(
+            x=anios, 
+            y=niveles,
+            mode="markers+text",
+            text=textos,
+            textposition="top center",
+            marker=dict(size=12, color="#333"),
+            hovertext=detalles, # Lo que sale al pasar el mouse
+            hoverinfo="text+x",
+            name="Hitos"
+        ))
+
+        # 3. ESTÉTICA FINAL
+        fig_timeline.update_layout(
+            title="Cronología Geopolítica del Gasto Militar",
+            xaxis=dict(range=[1945, 2029], showgrid=False), # Un poco de margen
+            yaxis=dict(showgrid=False, showticklabels=False, range=[0, 3]), # Ocultamos eje Y
+            height=300,
+            plot_bgcolor="white",
+            showlegend=False,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+
+        st.plotly_chart(fig_timeline, use_container_width=True)
+#         data = {
+#     "title": {
+#         "media": {
+#           "url": cargar_imagen_local("./static/cold_war_flag.svg"),
+#           "caption": "Contexto Global"
+#         },
+#         "text": {
+#           "headline": "Evolución del Gasto Militar",
+#           "text": "<p>Hitos clave que definieron los presupuestos de defensa.</p>"
+#         }
+#     },
+#     "events": [
+#       {
+#         "start_date": {"year": "1949"},
+#         "end_date": {"year": "1991"},
+#         "text": {"headline": "Inicio Guerra Fría", "text": "Creación de la OTAN y polarización global."}
+#       },
+#       {
+#         "start_date": {"year": "1991"},
+#         "text": {"headline": "Caída de la URSS", "text": "Fin de la bipolaridad y reducción del gasto."}
+#       },
+#       # ... más eventos
+#     ]
+# }
+
+#         timeline(data, height=500)
 
 
 #REDUCCION DEL HEADER Y EL FOOTER
