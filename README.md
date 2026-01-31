@@ -100,6 +100,13 @@ Military-Expenditure/
 
 - Notebook de Limpieza: Puedes consultar el proceso de limpieza y análisis exploratorio (EDA).
 
+## 🧠 Data Engineering (ETL)
+Si te interesa ver el proceso técnico completo de limpieza, tranformación e ingeniería de características que convirtió los datos crudos del `.xlsx` a un archivo mas completo y agíl `.parquet`, puedes consultar el *Notebook* completo aquí:
+
+[![Ver Notebook de Análisis](https://img.shields.io/badge/Jupyter-Ver_Notebook_ETL-F37626?style=for-the-badge&logo=jupyter&logoColor=white)](https://gist.github.com/Merzer-git/8e8951193d7cb44883da7097e98cb7dc)
+
+> **Nota:** Este proceso incluye la normalización de monedas, imputación de regiones y la creación de la lógica de las Eras Históricas.
+
 ## 👤 Autor
 **Brian Alaníz** | Estudiante de Ciencias de la Computación
 
