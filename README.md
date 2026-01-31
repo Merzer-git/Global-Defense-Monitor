@@ -16,8 +16,7 @@ El proyecto no solo visualiza datos, sino que integra herramientas de inferencia
 
 | Panorama Global | Análisis de Intervalos |
 |:---:|:---:|
-| ![Panorama](assets/image_panorama.png) | ![Inferencia](assets/image_inferencia.png) |
-> *Nota: Reemplaza estas rutas con tus imágenes reales o elimina esta sección si no las subes aún.*
+| ![Panorama](static/image_panorama.png) | ![Inferencia](static/image_inferencia.png) |
 
 ## 🎯 Características Principales
 
