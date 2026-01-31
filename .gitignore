@@ -18,6 +18,7 @@ env/
 # --- Notebooks y Zona de Pruebas (Tu pedido) ---
 .ipynb_checkpoints/
 *.ipynb
+*.xlsx
 # O si tienes una carpeta específica para tus pruebas:
 notebooks/
 borradores/
