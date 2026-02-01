@@ -194,6 +194,10 @@ if __name__ == '__main__':
             df_plot = df[df['Year'] == year_selected].copy()
             df_plot = df_plot.dropna(subset= [var_selected])
 
+            var_porcentuales= ['Share_of_GDP', 'Share_of_Govt_Spending', 'Growth_Rate']
+            if var_selected in var_porcentuales:
+                df_plot[var_selected]= df_plot[var_selected]*100
+
             with col_grafico:
                 opciones= ['Histograma', 'Boxplot']
 

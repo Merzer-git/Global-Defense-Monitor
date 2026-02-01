@@ -9,7 +9,11 @@ class Analizador_Estadistico:
         df_filtrado = self.__df[self.__df['Year'] == year].copy() if year else self.__df.copy()
         serie = df_filtrado[var]
         serie_limpia = serie.replace([np.inf, -np.inf], np.nan).dropna()
-        
+
+        var_porcentuales = ['Share_of_GDP', 'Share_of_Govt_Spending', 'Growth_Rate']
+        if var in var_porcentuales:
+            serie_limpia = serie_limpia*100
+
         return serie_limpia
     
     def generate_resumen(self, var, year):

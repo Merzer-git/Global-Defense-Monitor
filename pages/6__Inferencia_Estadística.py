@@ -194,7 +194,7 @@ if __name__ == '__main__':
     * **n1:** {datos_comparacion_era['n1']} | **n2:** {datos_comparacion_era['n2']}
     * **Homogeneidad:** Se asumieron varianzas **{'IGUALES' if datos_comparacion_era['varianzas_iguales'] else 'DISTINTAS'}**.
     * **Grados de Libertad:** {round(datos_comparacion_era['gl'], 2)} (Calculado según bibliografía).
-    * **Conclusión:** El intervalo [{datos_comparacion_era['lim_inf']:.2f}, {datos_comparacion_era['lim_sup']:.2f}] **{'INCLUYE' if res_era_cero else 'NO INCLUYE'}** al cero.
+    * **Conclusión:** El intervalo [\${datos_comparacion_era['lim_inf']:.2f}, \${datos_comparacion_era['lim_sup']:.2f}] **{'INCLUYE' if res_era_cero else 'NO INCLUYE'}** al cero.
     * **Veredicto:** {res_era_mensaje}.
     """)
 
@@ -255,6 +255,9 @@ if __name__ == '__main__':
                 height= 300,
                 margin= dict(l=20, r=20, t=20, b=20)
             )
+
+            fig_intervalos_region.update_xaxes(tickformat= ".2%")
+
             st.plotly_chart(fig_intervalos_region, use_container_width= True)
 
         else:
@@ -301,6 +304,8 @@ if __name__ == '__main__':
                     margin= dict(l=20, r=20, t=20, b=20)
                 )
 
+                fig_diff_region.update_xaxes(tickformat= ".2%")
+
                 st.plotly_chart(fig_diff_region, use_container_width= True)
 
                 with st.expander('Interpretación', expanded= False):
@@ -309,7 +314,7 @@ if __name__ == '__main__':
     * **n1:** {datos_comparacion_region['n1']} | **n2:** {datos_comparacion_region['n2']}
     * **Homogeneidad:** Se asumieron varianzas **{'IGUALES' if datos_comparacion_region['varianzas_iguales'] else 'DISTINTAS'}**.
     * **Grados de Libertad:** {round(datos_comparacion_region['gl'], 2)} (Calculado según bibliografía).
-    * **Conclusión:** El intervalo [{datos_comparacion_region['lim_inf']:.2f}, {datos_comparacion_region['lim_sup']:.2f}] **{'INCLUYE' if res_region_cero else 'NO INCLUYE'}** al cero.
+    * **Conclusión:** El intervalo [{datos_comparacion_region['lim_inf']*100:.2f}%, {datos_comparacion_region['lim_sup']*100:.2f}%] **{'INCLUYE' if res_region_cero else 'NO INCLUYE'}** al cero.
     * **Veredicto:** {res_region_mensaje}.
     """)
 

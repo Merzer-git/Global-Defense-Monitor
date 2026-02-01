@@ -39,9 +39,6 @@ def generar_tabla_frecuencias(df, variable, year=None):
     datos_validos = df_frec[variable].replace([np.inf, -np.inf], np.nan).dropna()
     total_original = len(datos_validos)  #TAMAÑO DE LA MUESTRA
     
-    if variable == 'Growth_Rate':
-        datos_validos = datos_validos[(datos_validos <= 2.0) & (datos_validos >= -1.0)]
-    
     n = len(datos_validos)
     if n == 0:
         return pd.DataFrame(), 0, 0, 0, 0, 0
@@ -110,6 +107,10 @@ if __name__ == '__main__':
 
     df_sin_outliers = filtrado_outliers_iqr(df, var_selected, 0.95) #CONSULTAR SOBRE METODO DE CORTE
 
+    var_porcentuales = ['Share_of_GDP', 'Share_of_Govt_Spending', 'Growth_Rate']
+    if var_selected in var_porcentuales:
+        df_sin_outliers[var_selected] = df_sin_outliers[var_selected] * 100
+
     with tab_tabla:
         if 'analisis_listo' not in st.session_state:
             st.session_state.analisis_listo = False
@@ -124,7 +125,34 @@ if __name__ == '__main__':
 
         if st.session_state.analisis_listo:
             tabla_frec, n, recorrido, intervalos, amplitud, dif = generar_tabla_frecuencias(df_sin_outliers, var_selected, year_selected)
-            st.dataframe(tabla_frec)
+
+            df_visual = tabla_frec.copy()
+            cols_a_multiplicar = ["Frecuencia Rel. (hi)", "Frecuencia Rel. Acumulada (Hi)"]
+            df_visual[cols_a_multiplicar] = df_visual[cols_a_multiplicar] * 100
+
+            st.dataframe(
+                df_visual,
+                use_container_width= True,
+                hide_index=0,
+                column_config= {
+                    'Intervalo': st.column_config.TextColumn(
+                        'Intervalo de Clase',
+                        width= 'medium'
+                    ),
+                    'Frecuencia Rel. (hi)': st.column_config.NumberColumn(
+                        'Frecuencia Relativa %',
+                        format= "%.4f %%"
+                    ),
+                    'Frecuencia Rel. Acumulada (Hi)': st.column_config.NumberColumn(
+                        'Frecuencia Acumulada %',
+                        format= '%.4f %%'
+                    ),
+                    'Frecuencia Abs. (fi)': st.column_config.NumberColumn(
+                        'Frecuencia Absoluta',
+                        format= '%d'
+                    )
+                }
+            )
             if dif != 0:
                 st.warning(f"⚠️ Se descartaron {dif} muestras (Outliers) ya que rompen la distribución de intervalos")
 

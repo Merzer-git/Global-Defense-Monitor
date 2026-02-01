@@ -85,6 +85,9 @@ if __name__ == '__main__':
         )
 
         variable_valor = 'Spending_B' if 'Gasto' in metrica_treemap else 'Share_of_GDP'
+        if variable_valor == 'Share_of_GDP':
+            df_year[variable_valor] = df_year[variable_valor]*100
+
         df_year = df_year[df_year[variable_valor] > 0]
 
         fig_treemap = px.treemap(
