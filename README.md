@@ -74,21 +74,28 @@ Sigue estos pasos para correr la aplicación en tu entorno local:
 
 ## 📁 Estructura del Proyecto
 ```Plaintext
-Military-Expenditure/
-├── Home.py                       # 🏠 Página de inicio y navegación
-├── pages/                        # 📑 Módulos de análisis
+Global-Defense-Monitor/
+├── Home.py
+├── data
+├── pages/
 │   ├── 1_Análisis_de_Variables_Cualitativas.py
 │   ├── 2_Análisis_de_Variables_Cuantitativas.py
 │   ├── 3_Panorama_Global.py
 │   ├── 4_Laboratorio_Temporal.py
 │   ├── 5_Calculadora_de_Probabilidades.py
-│   └── 6_Inferencia_Estadística.py
-├── src/                          # 🧠 Lógica de negocio
-│   ├── clase_analizador.py       # Clases POO para procesamiento
-│   ├── datos.py                  # Carga y limpieza de datos
-│   └── iso_countries.py          # Diccionarios de mapeo ISO
-├── data/                         # 💾 Datasets (SIPRI + World Bank)
-└── requirements.txt              # Dependencias
+│   ├── 6_Inferencia_Estadística.py
+│   ├── 7_Test_de_Hipótesis.py
+│   ├── 8_Regresión_Lineal.py
+│   └── 9_Informe_Técnico.py
+├── src/
+│   ├── clase_analizador.py
+│   ├── datos.py
+│   └── views/
+│       ├── analisis_cuantitativo
+│       ├── regresion_lineal
+│       └── test_hipotesis
+├── static
+└── requirements.txt            
 ```
 
 ## 📝 Metodología y Datos
